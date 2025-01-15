@@ -1,8 +1,22 @@
 package tools
 
-import "fmt"
+import (
+	"fmt"
+	"log"
+	"os"
+	"path/filepath"
+)
 
-// Mock function to simulate weather data retrieval
-func GetWeather(location string) string {
-	return fmt.Sprintf("In %s, it is Sunny, 25°C", location)
+// GetAutoportrait reads the self_portrait.txt file and formats the output.
+func GetAutoportrait() string {
+	// Define the path to the self_portrait.txt file
+	filePath := filepath.Join("internal", "rag", "tools", "self_portrait.txt")
+
+	// Read the contents of the file
+	fileContent, err := os.ReadFile(filePath) // Updated to os.ReadFile
+	if err != nil {
+		log.Printf("Error reading file %s: %v", filePath, err)
+	}
+	// Format the output
+	return fmt.Sprintf("%s", string(fileContent))
 }

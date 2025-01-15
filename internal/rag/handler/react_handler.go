@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -40,69 +39,48 @@ func (h *OpenAIHandler) ReActHandler(w http.ResponseWriter, r *http.Request) {
 		utils.SendJSONResponse(w, http.StatusInternalServerError, map[string]string{"error": "Internal server error"})
 		return
 	}
-
 	utils.SendJSONResponse(w, http.StatusCreated, map[string]string{"response": response})
 }
 
 // handleChatCompletion orchestrates the OpenAI chat completion logic
 func (h *OpenAIHandler) handleChatCompletion(ctx context.Context, prompt string) (string, error) {
-	toolParams := tools.NewChatCompletionToolParams() // Reuse tools definition
+	toolParams := tools.NewChatCompletionToolParams()
 	params := openai.ChatCompletionNewParams{
 		Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
+			openai.SystemMessage("You are an assistant capable of generating and presenting your self-portrait as ASCII art."),
 			openai.UserMessage(prompt),
 		}),
 		Tools:       openai.F(toolParams),
-		Model:       openai.F(openai.ChatModelGPT4oMini),
+		Model:       openai.F(openai.ChatModelGPT3_5Turbo),
 		Temperature: openai.Float(0),
 	}
 
+	// Make initial chat completion request
 	completion, err := h.Client.ChatCompletion(ctx, params)
 	if err != nil {
-		return "", err
+		panic(err)
 	}
 
 	toolCalls := completion.Choices[0].Message.ToolCalls
-	if len(toolCalls) == 0 {
-		return "No function call", nil
-	}
-
 	params.Messages.Value = append(params.Messages.Value, completion.Choices[0].Message)
 
-	// Pass params by reference to modify directly
-	err = h.handleToolCalls(toolCalls, &params) // Pass pointer here
-	if err != nil {
-		return "", err
-	}
-
-	completion, err = h.Client.ChatCompletion(ctx, params)
-	if err != nil {
-		return "", err
-	}
-
-	return completion.Choices[0].Message.Content, nil
-}
-
-// handleToolCalls processes tool calls and updates messages
-func (h *OpenAIHandler) handleToolCalls(toolCalls []openai.ChatCompletionMessageToolCall, params *openai.ChatCompletionNewParams) error {
 	for _, toolCall := range toolCalls {
-		switch toolCall.Function.Name {
-		case tools.NewChatCompletionToolParams()[0].Function.Value.Name.Value:
-			var args map[string]interface{}
-			if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err != nil {
-				return err
-			}
+		if toolCall.Function.Name == "get_autoportrait" {
+			asciiArt := tools.GetAutoportrait()
 
-			location := args["location"].(string)
-			weatherData := tools.GetWeather(location)
-
-			// Append the tool message response for this tool call ID
-			params.Messages.Value = append(params.Messages.Value, openai.ToolMessage(toolCall.ID, weatherData))
-
-		default:
-			// Handle unknown or unsupported function calls
-			log.Printf("Unhandled tool function: %s", toolCall.Function.Name)
-			params.Messages.Value = append(params.Messages.Value, openai.ToolMessage(toolCall.ID, fmt.Sprintf("Function '%s' is not supported.", toolCall.Function.Name)))
+			params.Messages.Value = append(params.Messages.Value, openai.ToolMessage(toolCall.ID, asciiArt))
+		} else {
+			log.Printf("Unhandled tool call: %s", toolCall.Function.Name)
 		}
 	}
-	return nil
+	// Secondary completion
+	completion, err = h.Client.ChatCompletion(ctx, params)
+	if err != nil {
+		return "", fmt.Errorf("secondary chat completion failed: %w", err)
+	}
+
+	if len(completion.Choices) == 0 || completion.Choices[0].Message.Content == "" {
+		return "", fmt.Errorf("no valid response received in secondary completion")
+	}
+	return completion.Choices[0].Message.Content, nil
 }
