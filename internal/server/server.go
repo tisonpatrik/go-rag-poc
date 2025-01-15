@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"rag-poc/internal/database"
+	"rag-poc/internal/openaiclient"
 	"rag-poc/internal/repository"
 	"rag-poc/internal/server/middleware"
 	"syscall"
@@ -17,27 +18,30 @@ import (
 )
 
 type Server struct {
-	port    string
-	db      database.Service
-	queries repository.Queries
-	httpSrv *http.Server
+	port         string
+	db           database.Service
+	queries      repository.Queries
+	openAIClient openaiclient.Service
+	httpSrv      *http.Server
 }
 
 // NewServer initializes a new server instance.
 func NewServer() *Server {
 	port := os.Getenv("PORT")
 	db := database.New()
+	openAI := openaiclient.New()
 
 	// Initialize queries with the database connection
 	queries := repository.New(db.DB())
 
 	router := http.NewServeMux()
-	registerRoutes(router, db, queries)
+	registerRoutes(router, db, &openAI)
 
 	server := &Server{
-		port:    port,
-		db:      db,
-		queries: *queries,
+		port:         port,
+		db:           db,
+		queries:      *queries,
+		openAIClient: openAI,
 	}
 
 	stack := middleware.CreateStack(

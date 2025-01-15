@@ -2,21 +2,21 @@ package server
 
 import (
 	"net/http"
-	"rag-poc/internal/builder"
 	"rag-poc/internal/database"
-	"rag-poc/internal/repository"
+	"rag-poc/internal/openaiclient"
+	"rag-poc/internal/rag"
 )
 
-func registerRoutes(router *http.ServeMux, db database.Service, queries *repository.Queries) {
+func registerRoutes(router *http.ServeMux, db database.Service, client *openaiclient.Service) {
 	registerServerRoutes(router, db)
-	builder.RegisterBuilderRoutes(router, queries)
+	rag.RegisterRagRoutes(router, client)
 }
 
 func registerServerRoutes(router *http.ServeMux, db database.Service) {
 	serverHandler := &ServerHandler{db: db}
 
-	router.HandleFunc("/hello", serverHandler.helloWorldHandler)
-	router.HandleFunc("/health_db", serverHandler.healthDBHandler)
-	router.HandleFunc("/stats_db", serverHandler.statsDBHandler)
-	router.HandleFunc("/health", serverHandler.healthHandler)
+	router.HandleFunc("GET /hello", serverHandler.helloWorldHandler)
+	router.HandleFunc("GET /health_db", serverHandler.healthDBHandler)
+	router.HandleFunc("GET /stats_db", serverHandler.statsDBHandler)
+	router.HandleFunc("GET /health", serverHandler.healthHandler)
 }
