@@ -16,7 +16,7 @@
 
 # Go workspace file
 go.work
-tmp/
+buikd/
 
 # IDE specific files
 .vscode
@@ -33,4 +33,4 @@ main
 .DS_Store
 
 *.secret% 
-tmp
+

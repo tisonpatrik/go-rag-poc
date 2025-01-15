@@ -38,8 +38,8 @@ itest:
 	@go test ./internal/database -v
 
 test/cover:
-	go test -v -race -buildvcs -coverprofile=/tmp/coverage.out ./...
-	go tool cover -html=/tmp/coverage.out
+	go test -v -race -buildvcs -coverprofile=/build/coverage.out ./...
+	go tool cover -html=/build/coverage.out
 
 
 # ==================================================================================== #
@@ -56,7 +56,7 @@ all: build audit
 
 build:
 	@echo "Building..."	
-	@go build -o tmp/main cmd/api/main.go
+	@go build -o build/main cmd/api/main.go
 
 # Run the application
 run: watch
@@ -105,8 +105,8 @@ push: confirm audit no-dirty
 
 ## production/deploy: deploy the application to production
 production/deploy: confirm audit no-dirty
-	GOOS=linux GOARCH=amd64 go build -ldflags='-s' -o=/tmp/bin/linux_amd64/${binary_name} ${main_package_path}
-	upx -5 /tmp/bin/linux_amd64/${binary_name}
+	GOOS=linux GOARCH=amd64 go build -ldflags='-s' -o=/build/bin/linux_amd64/${binary_name} ${main_package_path}
+	upx -5 /build/bin/linux_amd64/${binary_name}
 	# Include additional deployment steps here...
 
 

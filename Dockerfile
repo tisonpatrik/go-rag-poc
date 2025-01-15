@@ -13,7 +13,7 @@ COPY cmd ./cmd
 COPY internal ./internal
 
 # Build the binary
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/tmp/main ./cmd/api/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/build/main ./cmd/api/main.go
 
 # Development stage
 FROM golang:1.23-alpine AS dev
@@ -26,7 +26,7 @@ RUN go install github.com/air-verse/air@latest
 RUN air -v
 
 # Copy the source and binary
-COPY --from=build /app/tmp/main /app/tmp/main
+COPY --from=build /app/build/main /app/build/main
 COPY ./cmd ./cmd
 COPY ./internal ./internal
 COPY .air.toml ./
@@ -39,7 +39,7 @@ FROM gcr.io/distroless/base:nonroot AS prod
 WORKDIR /app
 
 # Copy the built binary
-COPY --from=build /app/tmp/main /app/main
+COPY --from=build /app/build/main /app/main
 
 # Environment configuration
 ENV PORT=8080
