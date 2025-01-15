@@ -1,0 +1,55 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    restart: unless-stopped
+    ports:
+      - ${PORT}:${PORT}
+    volumes:
+      - ./:/app
+    environment:
+      APP_ENV: ${APP_ENV}
+      PORT: ${PORT}
+      RAG_DB_HOST: ${RAG_DB_HOST}
+      RAG_DB_PORT: ${RAG_DB_PORT}
+      RAG_DB_DATABASE: ${RAG_DB_DATABASE}
+      RAG_DB_USERNAME: ${RAG_DB_USERNAME}
+      RAG_DB_PASSWORD: ${RAG_DB_PASSWORD}
+    depends_on:
+      psql_bp:
+        condition: service_healthy
+
+  psql_bp:
+    image: timescale/timescaledb-ha:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${RAG_DB_DATABASE}
+      POSTGRES_USER: ${RAG_DB_USERNAME}
+      POSTGRES_PASSWORD: ${RAG_DB_PASSWORD}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    ports:
+      - "${RAG_DB_PORT}:5432"
+    volumes:
+      - pgai_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "sh -c 'pg_isready -U ${RAG_DB_USERNAME} -d ${RAG_DB_DATABASE}'"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  vectorizer-worker:
+    image: timescale/pgai-vectorizer-worker:latest
+    environment:
+      PGAI_VECTORIZER_WORKER_DB_URL: postgresql://${RAG_DB_USERNAME}:${RAG_DB_PASSWORD}@${RAG_DB_HOST}:${RAG_DB_PORT}/${RAG_DB_DATABASE}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    command: [ "--poll-interval", "5s", "--log-level", "DEBUG" ]
+    depends_on:
+      psql_bp:
+        condition: service_healthy
+
+
+volumes:
+  pgai_data:
