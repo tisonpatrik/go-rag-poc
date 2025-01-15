@@ -3,17 +3,17 @@ package server
 import (
 	"net/http"
 	"rag-poc/internal/builder"
+	"rag-poc/internal/database"
 	"rag-poc/internal/repository"
 )
 
-func registerRoutes(router *http.ServeMux, queries *repository.Queries) {
-	registerServerRoutes(router)
+func registerRoutes(router *http.ServeMux, db database.Service, queries *repository.Queries) {
+	registerServerRoutes(router, db)
 	builder.RegisterBuilderRoutes(router, queries)
 }
 
-func registerServerRoutes(router *http.ServeMux) {
-
-	serverHandler := &ServerHandler{db: initializeDatabase()}
+func registerServerRoutes(router *http.ServeMux, db database.Service) {
+	serverHandler := &ServerHandler{db: db}
 
 	router.HandleFunc("/hello", serverHandler.helloWorldHandler)
 	router.HandleFunc("/health_db", serverHandler.healthDBHandler)
