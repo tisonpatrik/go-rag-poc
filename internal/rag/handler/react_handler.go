@@ -57,23 +57,40 @@ func (h *OpenAIHandler) handleChatCompletion(ctx context.Context, prompt string)
 	// Make initial chat completion request
 	initCompletion, err := h.Client.ChatCompletion(ctx, params)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 
 	toolCalls := initCompletion.Choices[0].Message.ToolCalls
 	params.Messages.Value = append(params.Messages.Value, initCompletion.Choices[0].Message)
 
+	// Process tool calls
+	if err := h.processToolCalls(ctx, toolCalls, &params); err != nil {
+		log.Printf("Error processing tool calls: %v", err)
+		return "", err
+	}
+
+	// Secondary completion
+	secondCompletion, err := h.Client.ChatCompletion(ctx, params)
+	if err != nil {
+		return "", err
+	}
+
+	return secondCompletion.Choices[0].Message.Content, nil
+}
+
+func (h *OpenAIHandler) processToolCalls(ctx context.Context, toolCalls []openai.ChatCompletionMessageToolCall, params *openai.ChatCompletionNewParams) error {
 	for _, toolCall := range toolCalls {
-		if toolCall.Function.Name == "get_autoportrait_with_message" {
+		switch toolCall.Function.Name {
+		case "get_autoportrait_with_message":
 			asciiArt, err := tools.GetAutoportrait()
 			if err != nil {
 				log.Printf("Error fetching autoportrait: %v", err)
 				asciiArt = "Sorry, I couldn't fetch the autoportrait at the moment. Please try again later!"
 			}
-
 			params.Messages.Value = append(params.Messages.Value, openai.ToolMessage(toolCall.ID, asciiArt))
-		} else if toolCall.Function.Name == "answer_generic_questions" {
-			answer, err := h.Client.ChatCompletion(ctx, params)
+
+		case "answer_generic_questions":
+			answer, err := h.Client.ChatCompletion(ctx, *params)
 			if err != nil {
 				log.Printf("Error processing generic question: %v", err)
 				fallbackMessage := "Apologies, I couldn't process your question right now. Please try again later!"
@@ -81,19 +98,11 @@ func (h *OpenAIHandler) handleChatCompletion(ctx context.Context, prompt string)
 			} else {
 				params.Messages.Value = append(params.Messages.Value, openai.ToolMessage(toolCall.ID, answer.Choices[0].Message.Content))
 			}
-		} else {
+
+		default:
 			log.Printf("Unhandled tool call: %s", toolCall.Function.Name)
 			params.Messages.Value = append(params.Messages.Value, openai.ToolMessage(toolCall.ID, "Sorry, I don't know how to handle this request yet."))
 		}
 	}
-	// Secondary completion
-	secondCompletion, err := h.Client.ChatCompletion(ctx, params)
-	if err != nil {
-		return secondCompletion.Choices[0].Message.Content, nil
-	}
-
-	// if len(completion.Choices) == 0 || completion.Choices[0].Message.Content == "" {
-	// 	return "", fmt.Errorf("no valid response received in secondary completion")
-	// }
-	return secondCompletion.Choices[0].Message.Content, nil
+	return nil
 }
