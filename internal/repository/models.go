@@ -15,7 +15,5 @@ type Document struct {
 	DocumentName string    `json:"document_name"`
 	DateTime     time.Time `json:"date_time"`
 	OriginalLink string    `json:"original_link"`
-	HtmlContent  string    `json:"html_content"`
 	Content      string    `json:"content"`
-	DocLanguage  string    `json:"doc_language"`
 }

@@ -6,22 +6,22 @@ import (
 	"net/http"
 	"rag-poc/internal/openaiclient"
 	"rag-poc/internal/rag/tools"
-	"rag-poc/internal/rag/utils"
+	"rag-poc/internal/utils"
 
 	"github.com/openai/openai-go"
 )
 
-type OpenAIHandler struct {
+type ReActHandler struct {
 	Client openaiclient.Service
 }
 
-func NewHandler(client openaiclient.Service) *OpenAIHandler {
-	return &OpenAIHandler{
+func NewHandler(client openaiclient.Service) *ReActHandler {
+	return &ReActHandler{
 		Client: client,
 	}
 }
 
-func (h *OpenAIHandler) ReActHandler(w http.ResponseWriter, r *http.Request) {
+func (h *ReActHandler) ReActHandler(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Prompt string `json:"prompt"`
 	}
@@ -42,7 +42,7 @@ func (h *OpenAIHandler) ReActHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleChatCompletion orchestrates the OpenAI chat completion logic
-func (h *OpenAIHandler) handleChatCompletion(ctx context.Context, prompt string) (string, error) {
+func (h *ReActHandler) handleChatCompletion(ctx context.Context, prompt string) (string, error) {
 	toolParams := tools.NewChatCompletionToolParams()
 	params := openai.ChatCompletionNewParams{
 		Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
@@ -78,7 +78,7 @@ func (h *OpenAIHandler) handleChatCompletion(ctx context.Context, prompt string)
 	return secondCompletion.Choices[0].Message.Content, nil
 }
 
-func (h *OpenAIHandler) processToolCalls(ctx context.Context, toolCalls []openai.ChatCompletionMessageToolCall, params *openai.ChatCompletionNewParams) error {
+func (h *ReActHandler) processToolCalls(ctx context.Context, toolCalls []openai.ChatCompletionMessageToolCall, params *openai.ChatCompletionNewParams) error {
 	for _, toolCall := range toolCalls {
 		switch toolCall.Function.Name {
 		case "get_autoportrait_with_message":

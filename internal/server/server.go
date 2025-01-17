@@ -35,7 +35,7 @@ func NewServer() *Server {
 	queries := repository.New(db.DB())
 
 	router := http.NewServeMux()
-	registerRoutes(router, db, &openAI)
+	registerRoutes(router, db, &openAI, queries)
 
 	server := &Server{
 		port:         port,

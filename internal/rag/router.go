@@ -9,5 +9,5 @@ import (
 func RegisterRagRoutes(router *http.ServeMux, client *openaiclient.Service) {
 	handler := handler.NewHandler(*client)
 
-	router.HandleFunc("/rag/react_agent", handler.ReActHandler)
+	router.HandleFunc("POST /rag/react_agent", handler.ReActHandler)
 }

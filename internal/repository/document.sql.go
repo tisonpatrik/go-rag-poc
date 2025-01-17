@@ -16,29 +16,22 @@ INSERT INTO document (
     document_name, 
     date_time, 
     original_link, 
-    html_content,
-    content,
-    doc_language
+    content
 )
 VALUES (
     uuid_generate_v4(),
     $1,
     $2,
     $3,
-    $4,
-    $5,
-    $6
-)
-RETURNING id, document_name, date_time, original_link, html_content, content, doc_language
+    $4)
+RETURNING id, document_name, date_time, original_link, content
 `
 
 type InsertDocumentParams struct {
 	DocumentName string    `json:"document_name"`
 	DateTime     time.Time `json:"date_time"`
 	OriginalLink string    `json:"original_link"`
-	HtmlContent  string    `json:"html_content"`
 	Content      string    `json:"content"`
-	DocLanguage  string    `json:"doc_language"`
 }
 
 func (q *Queries) InsertDocument(ctx context.Context, arg InsertDocumentParams) (Document, error) {
@@ -46,9 +39,7 @@ func (q *Queries) InsertDocument(ctx context.Context, arg InsertDocumentParams) 
 		arg.DocumentName,
 		arg.DateTime,
 		arg.OriginalLink,
-		arg.HtmlContent,
 		arg.Content,
-		arg.DocLanguage,
 	)
 	var i Document
 	err := row.Scan(
@@ -56,9 +47,7 @@ func (q *Queries) InsertDocument(ctx context.Context, arg InsertDocumentParams) 
 		&i.DocumentName,
 		&i.DateTime,
 		&i.OriginalLink,
-		&i.HtmlContent,
 		&i.Content,
-		&i.DocLanguage,
 	)
 	return i, err
 }

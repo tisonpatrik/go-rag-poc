@@ -5,9 +5,7 @@ CREATE TABLE document (
     document_name VARCHAR NOT NULL,
     date_time TIMESTAMPTZ NOT NULL,
     original_link TEXT NOT NULL,
-    html_content TEXT NOT NULL,
-    content TEXT NOT NULL,
-    doc_language TEXT NOT NULL
+    content TEXT NOT NULL
 );
 
 COMMIT;
